@@ -209,7 +209,7 @@ function view() {
    * https://github.com/Reactive-Extensions/RxJS/blob/master/doc/api/core/operators/scan.md
    */
   // const pinnedTweets$ = $Obs.return([]);
-  const pinnedTweets$ = columns.intents.pin$.scan((tweets, tweet) => tweets.concat([tweet]), []);
+  const pinnedTweets$ = columns.intents.pin$.scan([], (tweets, tweet) => tweets.concat([tweet])).startWith([]);
 
   /* TODO [#3c]: Update pinnedTweets$ to also use the
    *             `columns.intents.unpin$` stream, which is a stream of
