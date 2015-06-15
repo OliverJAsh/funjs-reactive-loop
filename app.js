@@ -64,7 +64,12 @@ function tweetElement(tweet, entities) {
    * https://github.com/Matt-Esch/virtual-dom/blob/master/virtual-hyperscript/README.md
    */
   return h(`article.tweet.tweet-${tweet.id}`, [
+    h('img.tweet__avatar', { src: tweet.user.profile_image_url_https }),
     h('div.tweet__content', [
+      h('div', [
+        h('span.tweet_author', tweet.user.name),
+        h('span.tweet_handle', '@' + tweet.user.screen_name)
+      ]),
       tweet.text
     ])
   ]);
@@ -92,10 +97,12 @@ function columnComponent(heading) {
      * Hint: you will likely want to use `tweetElement` to render each
      * tweet...
      */
-    // const tweetList$ = tweets$.map(tweets => {
-    //   return h('div', ??? );
-    // });
-    const tweetList$ = $Obs.return(h('div', 'Tweets to appear here…'));
+    const tweetList$ = tweets$.map(tweets => {
+      return h('div', h('ul', tweets.map(tweet => h('li', {
+        onclick: ev => activate$.onNext(tweet)
+      }, tweetElement(tweet)))));
+    });
+    // const tweetList$ = $Obs.return(h('div', 'Tweets to appear here…'));
 
     /* TODO [#4a]: For each tweet, extract the entities in the
      *             tweet.text using analyseEntities$, which returns a
@@ -172,7 +179,19 @@ function view() {
    * Hint: you may want to use the combineLatest operator:
    * https://github.com/Reactive-Extensions/RxJS/blob/master/doc/api/core/operators/combinelatest.md
    */
-  const filteredTweets$ = tweets$;
+  const excludeReplies = (exclFlag) => (tweet) => exclFlag ? !tweet.text.match(/^@/) : true;
+  const matchQuery     = (query) => (tweet) => tweet.text.indexOf(query) !== -1;
+
+  // const filteredTweets$ = tweets$;
+  const filteredTweets$ = $Obs.combineLatest(
+    tweets$,
+    query$,
+    exclReplies$,
+    (tweets, query, exclReplies) => {
+      return tweets
+        .filter(excludeReplies(exclReplies))
+        .filter(matchQuery(query));
+    });
 
   const columns = columnsComponent();
 
@@ -189,7 +208,8 @@ function view() {
    * tweet pinned initially):
    * https://github.com/Reactive-Extensions/RxJS/blob/master/doc/api/core/operators/scan.md
    */
-  const pinnedTweets$ = $Obs.return([]);
+  // const pinnedTweets$ = $Obs.return([]);
+  const pinnedTweets$ = columns.intents.pin$.scan((tweets, tweet) => tweets.concat([tweet]), []);
 
   /* TODO [#3c]: Update pinnedTweets$ to also use the
    *             `columns.intents.unpin$` stream, which is a stream of
