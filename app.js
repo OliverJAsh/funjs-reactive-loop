@@ -15,9 +15,10 @@ const $Obs = Rx.Observable;
 import {getTweetStream$}         from './lib/twitter-api';
 
 // Helpers
-import {analyseEntities$}        from './lib/analyser';
-import {highlightEntitiesInText} from './lib/util/text';
-import {container$}              from './lib/util/reactive';
+import {analyseEntities$}          from './lib/analyser';
+import {highlightEntitiesInText}   from './lib/util/text';
+import {contains, addOnce, remove} from './lib/util/array';
+import {container$}                from './lib/util/reactive';
 
 import {input}            from './components/input';
 import {labelledCheckbox} from './components/checkbox/labelled';
@@ -180,7 +181,7 @@ function view() {
    * https://github.com/Reactive-Extensions/RxJS/blob/master/doc/api/core/operators/combinelatest.md
    */
   const excludeReplies = (exclFlag) => (tweet) => exclFlag ? !tweet.text.match(/^@/) : true;
-  const matchQuery     = (query) => (tweet) => tweet.text.indexOf(query) !== -1;
+  const matchQuery     = (query) => (tweet) => contains(tweet.text, query);
 
   // const filteredTweets$ = tweets$;
   const filteredTweets$ = $Obs.combineLatest(
@@ -208,8 +209,20 @@ function view() {
    * tweet pinned initially):
    * https://github.com/Reactive-Extensions/RxJS/blob/master/doc/api/core/operators/scan.md
    */
+
+  const pinTweet   = (tweet) => (pinnedTweets) => addOnce(pinnedTweets, tweet);
+  const unpinTweet = (tweet) => (pinnedTweets) => remove(pinnedTweets, tweet);
+
   // const pinnedTweets$ = $Obs.return([]);
-  const pinnedTweets$ = columns.intents.pin$.scan([], (tweets, tweet) => tweets.concat([tweet])).startWith([]);
+
+  const pin$ = columns.intents.pin$.map(pinTweet);
+  const unpin$ = columns.intents.unpin$.map(unpinTweet);
+  const pinningActions$ = pin$.merge(unpin$);
+
+  const pinnedTweets$ = pinningActions$
+    .scan([], (tweets, fn) => fn(tweets))
+    .startWith([]);
+
 
   /* TODO [#3c]: Update pinnedTweets$ to also use the
    *             `columns.intents.unpin$` stream, which is a stream of
