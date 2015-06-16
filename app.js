@@ -15,10 +15,10 @@ const $Obs = Rx.Observable;
 import {getTweetStream$}         from './lib/twitter-api';
 
 // Helpers
-import {analyseEntities$}        from './lib/analyser';
-import {highlightEntitiesInText} from './lib/util/text';
-import {contains}                from './lib/util/array';
-import {container$}              from './lib/util/reactive';
+import {analyseEntities$}          from './lib/analyser';
+import {highlightEntitiesInText}   from './lib/util/text';
+import {contains, addOnce, remove} from './lib/util/array';
+import {container$}                from './lib/util/reactive';
 
 import {input}            from './components/input';
 import {labelledCheckbox} from './components/checkbox/labelled';
@@ -210,7 +210,7 @@ function view() {
    * https://github.com/Reactive-Extensions/RxJS/blob/master/doc/api/core/operators/scan.md
    */
 
-  const pinTweet = (pinnedTweets, tweet) => contains(pinnedTweets, tweet) ? pinnedTweets : pinnedTweets.concat([tweet]);
+  const pinTweet = (pinnedTweets, tweet) => addOnce(pinnedTweets, tweet);
 
   // const pinnedTweets$ = $Obs.return([]);
   const pinnedTweets$ = columns.intents.pin$
