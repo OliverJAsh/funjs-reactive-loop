@@ -210,12 +210,19 @@ function view() {
    * https://github.com/Reactive-Extensions/RxJS/blob/master/doc/api/core/operators/scan.md
    */
 
-  const pinTweet = (pinnedTweets, tweet) => addOnce(pinnedTweets, tweet);
+  const pinTweet   = (tweet) => (pinnedTweets) => addOnce(pinnedTweets, tweet);
+  const unpinTweet = (tweet) => (pinnedTweets) => remove(pinnedTweets, tweet);
 
   // const pinnedTweets$ = $Obs.return([]);
-  const pinnedTweets$ = columns.intents.pin$
-    .scan([], pinTweet)
+
+  const pin$ = columns.intents.pin$.map(pinTweet);
+  const unpin$ = columns.intents.unpin$.map(unpinTweet);
+  const pinningActions$ = pin$.merge(unpin$);
+
+  const pinnedTweets$ = pinningActions$
+    .scan([], (tweets, fn) => fn(tweets))
     .startWith([]);
+
 
   /* TODO [#3c]: Update pinnedTweets$ to also use the
    *             `columns.intents.unpin$` stream, which is a stream of
